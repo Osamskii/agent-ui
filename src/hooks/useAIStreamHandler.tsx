@@ -89,13 +89,18 @@ const useAIChatStreamHandler = () => {
         )
 
         formData.append('stream', 'true')
-        formData.append('session_id', sessionId ?? '')
+        if (sessionId) {
+          formData.append('session_id', sessionId)
+        }
 
         await streamResponse({
           apiUrl: playgroundRunUrl,
           requestBody: formData,
           onChunk: (chunk: RunResponse) => {
             if (chunk.event === RunEvent.RunResponse) {
+              if (chunk.session_id && !sessionId) {
+                setSessionId(chunk.session_id)
+              }
               setMessages((prevMessages) => {
                 const newMessages = [...prevMessages]
                 const lastMessage = newMessages[newMessages.length - 1]

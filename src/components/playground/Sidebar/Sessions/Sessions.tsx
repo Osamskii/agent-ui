@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, useRef, useCallback } from 'react'
 import dayjs from 'dayjs'
 import utc from 'dayjs/plugin/utc'
+import { toast } from 'sonner'
 
 import { usePlaygroundStore } from '@/store'
 import { useQueryState } from 'nuqs'
@@ -52,7 +53,7 @@ const Sessions = () => {
     parse: (value) => value || undefined,
     history: 'push'
   })
-  const [sessionId] = useQueryState('session')
+  const [sessionId, setSessionId] = useQueryState('session')
   const {
     selectedEndpoint,
     isEndpointActive,
@@ -94,7 +95,13 @@ const Sessions = () => {
   // Load a session on render if a session id exists in url
   useEffect(() => {
     if (sessionId && agentId && selectedEndpoint && hydrated) {
-      getSession(sessionId, agentId)
+      getSession(sessionId, agentId).then((result) => {
+        if (!result) {
+          // Jeśli sesja nie istnieje, wyczyść ID sesji z URL
+          setSessionId(null)
+          toast.info('Starting a new chat session')
+        }
+      })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hydrated])
@@ -106,7 +113,9 @@ const Sessions = () => {
     }
     if (!isEndpointLoading) {
       setSessionsData(() => null)
-      getSessions(agentId)
+      getSessions(agentId).catch((error) => {
+        toast.error('Failed to load sessions. Please try again.')
+      })
     }
   }, [
     selectedEndpoint,

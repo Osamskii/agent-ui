@@ -11,6 +11,7 @@ import {
   ReasoningMessage,
   ChatEntry
 } from '@/types/playground'
+import { APIRoutes } from '@/api/routes'
 
 interface SessionResponse {
   session_id: string
@@ -57,14 +58,27 @@ const useSessionLoader = () => {
       }
 
       try {
-        const response = (await getPlaygroundSessionAPI(
-          selectedEndpoint,
-          agentId,
-          sessionId
-        )) as SessionResponse
+        const response = await fetch(
+          APIRoutes.GetPlaygroundSession(selectedEndpoint, agentId, sessionId),
+          {
+            method: 'GET'
+          }
+        )
 
-        if (response && response.memory) {
-          const sessionHistory = response.memory.runs ?? response.memory.chats
+        if (response.status === 404) {
+          toast.error('Session not found. Starting a new session.')
+          setMessages([])
+          return null
+        }
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch session: ${response.statusText}`)
+        }
+
+        const data = await response.json() as SessionResponse
+
+        if (data && data.memory) {
+          const sessionHistory = data.memory.runs ?? data.memory.chats
 
           if (sessionHistory && Array.isArray(sessionHistory)) {
             const messagesForPlayground = sessionHistory.flatMap((run) => {
